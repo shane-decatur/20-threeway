@@ -9,7 +9,24 @@
   returns the file descriptor for the upstream pipe.
   =========================*/
 int server_handshake(int *to_client) {
-  int from_client = 0;
+
+  mkfifo(WKP, 0644);
+  printf("WKP created\n");
+  int from_client = open(WKP, O_RDONLY);
+
+  char secret_name[HANDSHAKE_BUFFER_SIZE];
+  read(from_client,secret_name,HANDSHAKE_BUFFER_SIZE);
+  printf("server connected, secret name: %s\n",secret_name);
+  remove(WKP);
+
+  *to_client = open(secret_name,O_WRONLY);
+  printf("opened private server\n");
+  write(*to_client,ACK,HANDSHAKE_BUFFER_SIZE);
+
+  char message[HANDSHAKE_BUFFER_SIZE];
+  read(from_client,message,HANDSHAKE_BUFFER_SIZE);
+  printf("reponse received: %s\n",message);
+
   return from_client;
 }
 
@@ -22,6 +39,21 @@ int server_handshake(int *to_client) {
   returns the file descriptor for the downstream pipe.
   =========================*/
 int client_handshake(int *to_server) {
-  int from_server = 0;
+
+  char secret_name[BUFFER_SIZE];
+  sprintf(secret_name,"%d",getpid());
+  mkfifo(secret_name,0644);
+  printf("client created secret pipe\n");
+
+  *to_server = open(WKP, O_WRONLY);
+  write(*to_server, secret_name,BUFFER_SIZE);
+
+  char message[HANDSHAKE_BUFFER_SIZE];
+  int from_server = open(secret_name,O_RDONLY);
+  read(from_server,message,HANDSHAKE_BUFFER_SIZE);
+  printf("client got: %s\n",message);
+
+  write(*to_server, "Success", BUFFER_SIZE);
+
   return from_server;
 }
