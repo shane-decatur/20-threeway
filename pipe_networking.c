@@ -21,7 +21,7 @@ int server_handshake(int *to_client) {
 
   *to_client = open(secret_name,O_WRONLY);
   printf("opened private server\n");
-  write(*to_client,ACK,HANDSHAKE_BUFFER_SIZE);
+  write(*to_client,ACK,strlen(ACK));
 
   char message[HANDSHAKE_BUFFER_SIZE];
   read(from_client,message,HANDSHAKE_BUFFER_SIZE);
@@ -46,14 +46,16 @@ int client_handshake(int *to_server) {
   printf("client created secret pipe\n");
 
   *to_server = open(WKP, O_WRONLY);
-  write(*to_server, secret_name,BUFFER_SIZE);
+  write(*to_server, secret_name,strlen(secret_name));
 
   char message[HANDSHAKE_BUFFER_SIZE];
   int from_server = open(secret_name,O_RDONLY);
   read(from_server,message,HANDSHAKE_BUFFER_SIZE);
-  printf("client got: %s\n",message);
 
-  write(*to_server, "Success", BUFFER_SIZE);
+  printf("client got: %s\n",message);
+  remove(secret_name);
+
+  if (!strcmp(message,ACK)) write(*to_server, "success", strlen("success"));
 
   return from_server;
 }
